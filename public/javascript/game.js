@@ -81,6 +81,8 @@ var gameUpdateStartTimestamp;
 var moduleList = [];
 
 var localPlayerWalkBuffer = -1; // no buffering
+var lockWalkDir = -1;
+
 
 // Thanks to CatTail for this snippet of code.
 var encodeHtmlEntity = function(str) {
@@ -684,6 +686,7 @@ Player.prototype.draw = function() {
 
 Player.prototype.walk = function(direction) {
     if (this.walkDelay > 0) {
+	console.log("aah");
         return false;
     }
     if (this == localPlayer) {
@@ -1196,16 +1199,20 @@ function startPlacingText(text) {
 function localPlayerStartWalking(direction) {
     if (localPlayerWalkRepeatDirections[localPlayerWalkRepeatDirections.length - 1] !== direction)
     {
-	localPlayer.walk(direction);
-	localPlayerWalkRepeatDirections.push(direction);
-	localPlayerWalkBuffer = direction;
+	if (this.walkDelay <= 0)
+	    localPlayer.walk(direction);
+	else {
+	    localPlayerWalkRepeatDirections.push(direction);
+	    localPlayerWalkBuffer = direction;
+	}
+	lockWalkDir = -1;
     }
     //localPlayerWalkRepeatDelay = 0.1 * framesPerSecond;
     //localPlayerShouldStopWalkRepeat = !lKeyIsHeld;
 }
 
 function localPlayerStopWalking(direction) {
-    if (localPlayerWalkRepeatDirections.length == 0 || lKeyIsHeld)
+    if (localPlayerWalkRepeatDirections.length == 0)
 	return;
     for (var i = localPlayerWalkRepeatDirections.length - 1; i >= 0; i--)
     {
@@ -1414,6 +1421,8 @@ function keyDownEvent(event) {
 	    localPlayer.placeOrRemoveTile(2);
 	else if (key == "j")
 	    localPlayer.placeOrRemoveTile(3);
+	else if (key == "m")
+	    lockWalkDir = localPlayerWalkBuffer >= 0 ? localPlayerWalkBuffer : localPlayerWalkRepeatDirections.length ? localPlayerWalkRepeatDirections[localPlayerWalkRepeatDirections.length - 1] : -1;
         else if (keyCode == 189 || keyCode == 173) {
             setZoom(0);
         }
@@ -1456,7 +1465,7 @@ function keyUpEvent(event) {
     if (keyCode == 16) {
         shiftKeyIsHeld = false;
     }
-    if (keyCode == 76) {
+    if (keyCode == 77) { // m
         lKeyIsHeld = false;
     }
     if (keyCode == 37 || keyCode == 65) {
@@ -1557,17 +1566,22 @@ function timerEvent() {
             }
         }
     }
-    if (localPlayerWalkRepeatDirections.length > 0 || localPlayerWalkBuffer >= 0) {
-        if (localPlayerWalkRepeatDelay > 0) {
-            localPlayerWalkRepeatDelay -= 1;
-        }
-	else if (localPlayerWalkBuffer >= 0) {
+    if (localPlayer.walkDelay > 0)
+    {
+	// idk
+    }
+    else if (localPlayerWalkRepeatDirections.length > 0 || localPlayerWalkBuffer >= 0 || lockWalkDir >= 0) {
+	console.log(localPlayerWalkBuffer);
+	if (localPlayerWalkBuffer >= 0) {
 	    localPlayer.walk(localPlayerWalkBuffer);
 	    localPlayerWalkBuffer = -1;
 	}
-	else {
+	else if (localPlayerWalkRepeatDirections.length) {
             localPlayer.walk(localPlayerWalkRepeatDirections[localPlayerWalkRepeatDirections.length - 1]);
         }
+	else {
+	    localPlayer.walk(lockWalkDir);
+	}
     }
     cameraPos.set(localPlayer.pos);
     var tempOffset = Math.floor(canvasSpriteSize / 2);
