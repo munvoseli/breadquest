@@ -21,6 +21,9 @@ var HOSPITAL_TILE = 150;
 var SYMBOL_START_TILE = 33;
 var SYMBOL_TILE_AMOUNT = 94;
 
+var TELEPORTER_START_TILE = 151;
+var TELEPORTER_TILE_AMOUNT = 4;
+
 var TERRAIN_INCLUSION_RESOLUTION = 8;
 var TERRAIN_COLOR_RESOLUTION = 16;
 var TERRAIN_INCLUSION_THRESHOLD = 128;
@@ -53,7 +56,9 @@ module.exports = {
     OVEN_TILE: OVEN_TILE,
     HOSPITAL_TILE: HOSPITAL_TILE,
     SYMBOL_START_TILE: SYMBOL_START_TILE,
-    SYMBOL_TILE_AMOUNT: SYMBOL_TILE_AMOUNT
+    SYMBOL_TILE_AMOUNT: SYMBOL_TILE_AMOUNT,
+    TELEPORTER_START_TILE: TELEPORTER_START_TILE,
+    TELEPORTER_TILE_AMOUNT: TELEPORTER_TILE_AMOUNT
 }
 
 var Pos = require("models/pos").Pos;
@@ -130,6 +135,17 @@ Chunk.prototype.getRestZonePos = function(pos) {
     }
 }
 
+Chunk.prototype.addTeleporter = function() {
+    var tempPos = new Pos(
+	Math.floor(Math.random() * chunkSize),
+	Math.floor(Math.random() * chunkSize)
+    );
+    tempPos.add(this.pos);
+    var tempType = Math.floor(Math.random() * TELEPORTER_TILE_AMOUNT);
+    this.setTile(tempPos, TELEPORTER_START_TILE + tempType);
+    console.log("Put teleporter at " + tempPos.toString());
+}
+
 Chunk.prototype.hasGeneratedTiles = function() {
     return (this.data[0] != 0);
 }
@@ -149,7 +165,8 @@ Chunk.prototype.generateTile = function(pos) {
     } else {
         if (Math.random() < 0.01) {
             tempTile = FLOUR_TILE + Math.floor(Math.random() * 3);
-        } else {
+	}
+        else {
             tempTile = EMPTY_TILE;
         }
     }
@@ -249,6 +266,8 @@ Chunk.prototype.generateAllTiles = function() {
     if ((this.pos.x == 0 && this.pos.y == 0) || Math.random() < 1 / (10 * 10)) {
         this.addRestZone();
     }
+    if (Math.random() < 1 / 36)
+	this.addTeleporter();
     chunkUtils.persistAllChunks();
 }
 
