@@ -80,6 +80,8 @@ var gameUpdateSocket;
 var gameUpdateStartTimestamp;
 var moduleList = [];
 
+var localPlayerWalkBuffer = -1; // no buffering
+
 // Thanks to CatTail for this snippet of code.
 var encodeHtmlEntity = function(str) {
     var buf = [];
@@ -1196,6 +1198,7 @@ function localPlayerStartWalking(direction) {
     {
 	localPlayer.walk(direction);
 	localPlayerWalkRepeatDirections.push(direction);
+	localPlayerWalkBuffer = direction;
     }
     //localPlayerWalkRepeatDelay = 0.1 * framesPerSecond;
     //localPlayerShouldStopWalkRepeat = !lKeyIsHeld;
@@ -1554,10 +1557,15 @@ function timerEvent() {
             }
         }
     }
-    if (localPlayerWalkRepeatDirections.length > 0) {
+    if (localPlayerWalkRepeatDirections.length > 0 || localPlayerWalkBuffer >= 0) {
         if (localPlayerWalkRepeatDelay > 0) {
             localPlayerWalkRepeatDelay -= 1;
-        } else {
+        }
+	else if (localPlayerWalkBuffer >= 0) {
+	    localPlayer.walk(localPlayerWalkBuffer);
+	    localPlayerWalkBuffer = -1;
+	}
+	else {
             localPlayer.walk(localPlayerWalkRepeatDirections[localPlayerWalkRepeatDirections.length - 1]);
         }
     }
