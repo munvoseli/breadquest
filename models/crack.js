@@ -23,6 +23,8 @@ var tempResource = require("models/chunk");
 var BLOCK_START_TILE = tempResource.BLOCK_START_TILE;
 var BLOCK_TILE_AMOUNT = tempResource.BLOCK_TILE_AMOUNT;
 var EMPTY_TILE = tempResource.EMPTY_TILE;
+var TELEPORTER_START_TILE = tempResource.TELEPORTER_START_TILE;
+var TELEPORTER_TILE_AMOUNT = tempResource.TELEPORTER_TILE_AMOUNT;
 
 Crack.prototype.tick = function() {
     Entity.prototype.tick.call(this);
@@ -35,9 +37,10 @@ Crack.prototype.tick = function() {
 
 Crack.prototype.giveTileToPlayer = function() {
     var tempTile = chunkUtils.getTile(this.pos);
-    if (tempTile < BLOCK_START_TILE || tempTile >= BLOCK_START_TILE + BLOCK_TILE_AMOUNT) {
-        return;
-    }
+    var isAcceptableBlock = (tempTile >= BLOCK_START_TILE && tempTile < BLOCK_START_TILE + BLOCK_TILE_AMOUNT) ||
+	(tempTile >= TELEPORTER_START_TILE && tempTile < TELEPORTER_START_TILE + TELEPORTER_TILE_AMOUNT);
+    if (!isAcceptableBlock)
+	return;
     var tempPlayer = gameUtils.getPlayerByUsername(this.username);
     if (tempPlayer === null) {
         return;
