@@ -42,6 +42,8 @@ var powderTile = 147;
 var breadTile = 148;
 var ovenTile = 149;
 var hospitalTile = 150;
+var teleporterStartTile = 151;
+var teleporterTileAmount = 4;
 var symbolStartTile = 33;
 var symbolTileAmount = 94;
 var entityList = [];
@@ -67,7 +69,7 @@ var textToPlaceInput;
 var textToPlace = null;
 var textToPlaceIndex;
 var textToPlaceIsWaitingToWalk;
-var localPlayerWalkRepeatDirection = null;
+var localPlayerWalkRepeatDirections = [];
 var localPlayerWalkRepeatDelay = 0;
 var localPlayerShouldStopWalkRepeat = true;
 var lKeyIsHeld = false;
@@ -597,6 +599,10 @@ new InventoryItem(blockStartTile + 4, "Teal Block");
 new InventoryItem(blockStartTile + 5, "Blue Block");
 new InventoryItem(blockStartTile + 6, "Purple Block");
 new InventoryItem(blockStartTile + 7, "Gray Block");
+new InventoryItem(teleporterStartTile + 0, "Tele North");
+new InventoryItem(teleporterStartTile + 1, "Tele East");
+new InventoryItem(teleporterStartTile + 2, "Tele South");
+new InventoryItem(teleporterStartTile + 3, "Tele West");
 
 Entity.prototype.remove = function() {
     var index = 0;
@@ -716,7 +722,7 @@ Player.prototype.removeTile = function(direction) {
     localCrack = new Crack(-1, tempPos, localPlayer.username);
     localCrackTile = getTileBufferValue(tempPos);
     var tempDate = new Date();
-    localCrackExpirationTime = tempDate.getTime() + 1000;
+    localCrackExpirationTime = tempDate.getTime() + 500;
     addRemoveTileCommand(direction);
 }
 
@@ -729,7 +735,8 @@ Player.prototype.collectTile = function(direction) {
 Player.prototype.placeOrRemoveTile = function(direction) {
     var tempPos = this.getPosInWalkDirection(direction);
     var tempTile = getTileBufferValue(tempPos);
-    if (tempTile >= blockStartTile && tempTile < blockStartTile + blockTileAmount) {
+    if ((tempTile >= blockStartTile && tempTile < blockStartTile + blockTileAmount)
+	|| (tempTile >= teleporterStartTile && tempTile < teleporterStartTile + teleporterTileAmount)) {
         this.removeTile(direction);
     }
     if ((tempTile >= flourTile && tempTile <= breadTile)
@@ -746,7 +753,7 @@ Player.prototype.performActionInDirection = function(direction) {
     if (shiftKeyIsHeld) {
         this.placeOrRemoveTile(direction);
         if (this == localPlayer) {
-            localPlayerWalkRepeatDirection = null;
+            localPlayerWalkRepeatDirections = [];
         }
     } else {
         if (this == localPlayer) {
@@ -758,15 +765,8 @@ Player.prototype.performActionInDirection = function(direction) {
 }
 
 Player.prototype.stopActionInDirection = function(direction) {
-    if (shiftKeyIsHeld) {
-        // Do nothing.
-    } else {
-        if (this == localPlayer) {
-            localPlayerStopWalking(direction);
-        } else {
-            // Do nothing.
-        }
-    }
+    if (this == localPlayer)
+        localPlayerStopWalking(direction);
 }
 
 function Crack(id, pos) {
@@ -1103,6 +1103,9 @@ function drawTileOnContext(context, pos, size, which) {
     if (which == hospitalTile) {
         drawSpriteOnContext(context, pos, size, 17);
     }
+    if (which >= teleporterStartTile && which < teleporterStartTile + teleporterTileAmount) {
+        drawSpriteOnContext(context, pos, size, which - teleporterStartTile + 18);
+    }
     if (which >= symbolStartTile && which < symbolStartTile + symbolTileAmount) {
         drawSpriteOnContext(context, pos, size, which - (symbolStartTile - 1) + 80);
     }
@@ -1189,21 +1192,24 @@ function startPlacingText(text) {
 }
 
 function localPlayerStartWalking(direction) {
-    if (localPlayerWalkRepeatDirection !== direction) {
-        localPlayer.walk(direction);
-        localPlayerWalkRepeatDirection = direction;
-        localPlayerWalkRepeatDelay = 0.35 * framesPerSecond;
-        localPlayerShouldStopWalkRepeat = !lKeyIsHeld;
+    if (localPlayerWalkRepeatDirections[localPlayerWalkRepeatDirections.length - 1] !== direction)
+    {
+	localPlayer.walk(direction);
+	localPlayerWalkRepeatDirections.push(direction);
     }
+    //localPlayerWalkRepeatDelay = 0.1 * framesPerSecond;
+    //localPlayerShouldStopWalkRepeat = !lKeyIsHeld;
 }
 
 function localPlayerStopWalking(direction) {
-    if (direction == localPlayerWalkRepeatDirection) {
-        if (localPlayerShouldStopWalkRepeat) {
-            localPlayerWalkRepeatDirection = null;
-        } else {
-            localPlayerShouldStopWalkRepeat = true;
-        }
+    if (localPlayerWalkRepeatDirections.length == 0 || lKeyIsHeld)
+	return;
+    for (var i = localPlayerWalkRepeatDirections.length - 1; i >= 0; i--)
+    {
+	if (localPlayerWalkRepeatDirections[i] == direction) {
+	    localPlayerWalkRepeatDirections.splice(i, 1);
+	    i++;
+	}
     }
 }
 
@@ -1335,7 +1341,7 @@ function keyDownEvent(event) {
     if (keyCode == 16) {
         shiftKeyIsHeld = true;
     }
-    if (keyCode == 76) {
+    if (keyCode == 77) { // m
         lKeyIsHeld = true;
     }
     if (chatInputIsFocused) {
@@ -1382,25 +1388,36 @@ function keyDownEvent(event) {
             overlayChatInput.focus();
             overlayChatInputIsFocused = true;
         }
-        if (keyCode == 37 || keyCode == 65) {
-            localPlayer.performActionInDirection(3);
+	var key = event.key;
+	if (false) {
+	}
+        else if (keyCode == 37 || keyCode == 65) {
+            localPlayerStartWalking(3);
         }
-        if (keyCode == 39 || keyCode == 68) {
-            localPlayer.performActionInDirection(1);
+        else if (keyCode == 39 || keyCode == 68) {
+            localPlayerStartWalking(1);
         }
-        if (keyCode == 38 || keyCode == 87) {
-            localPlayer.performActionInDirection(0);
+        else if (keyCode == 38 || keyCode == 87) {
+            localPlayerStartWalking(0);
         }
-        if (keyCode == 40 || keyCode == 83) {
-            localPlayer.performActionInDirection(2);
+        else if (keyCode == 40 || keyCode == 83) {
+            localPlayerStartWalking(2);
         }
-        if (keyCode == 189 || keyCode == 173) {
+	else if (key == "i")
+	    localPlayer.placeOrRemoveTile(0);
+	else if (key == "l")
+	    localPlayer.placeOrRemoveTile(1);
+	else if (key == "k")
+	    localPlayer.placeOrRemoveTile(2);
+	else if (key == "j")
+	    localPlayer.placeOrRemoveTile(3);
+        else if (keyCode == 189 || keyCode == 173) {
             setZoom(0);
         }
-        if ((keyCode == 187 || keyCode == 61) && shiftKeyIsHeld) {
+        else if ((keyCode == 187 || keyCode == 61) && shiftKeyIsHeld) {
             setZoom(1);
         }
-        if (keyCode == 82) {
+        else if (keyCode == 82 || key == "p") {
             var index = selectedInventoryItemIndex - 1;
             if (index < 0) {
                 index = inventoryItemList.length - 1;
@@ -1408,7 +1425,7 @@ function keyDownEvent(event) {
             selectInventoryItem(index);
             centerSelectedInventoryItem();
         }
-        if (keyCode == 70) {
+        if (keyCode == 70 || key == "n") {
             var index = selectedInventoryItemIndex + 1;
             if (index >= inventoryItemList.length) {
                 index = 0;
@@ -1454,11 +1471,9 @@ function keyUpEvent(event) {
 }
 
 function timerEvent() {
-    
     if (hasStopped) {
         return;
     }
-    
     var tempTag = document.getElementById("overlayChat");
     var tempHasFoundVisibleMessage = false;
     var index = 0;
@@ -1539,11 +1554,11 @@ function timerEvent() {
             }
         }
     }
-    if (localPlayerWalkRepeatDirection !== null) {
+    if (localPlayerWalkRepeatDirections.length > 0) {
         if (localPlayerWalkRepeatDelay > 0) {
             localPlayerWalkRepeatDelay -= 1;
         } else {
-            localPlayer.walk(localPlayerWalkRepeatDirection);
+            localPlayer.walk(localPlayerWalkRepeatDirections[localPlayerWalkRepeatDirections.length - 1]);
         }
     }
     cameraPos.set(localPlayer.pos);
