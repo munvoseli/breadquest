@@ -14,6 +14,8 @@ var tempResource = require("models/chatMessage");
 var announceMessageInChat = tempResource.announceMessageInChat;
 var getNextChatMessageId = tempResource.getNextChatMessageId;
 
+
+
 function Player(account) {
     if ("respawnPos" in account) {
         this.respawnPos = createPosFromJson(account.respawnPos);
@@ -91,6 +93,8 @@ var OVEN_TILE = tempResource.OVEN_TILE;
 var HOSPITAL_TILE = tempResource.HOSPITAL_TILE;
 var SYMBOL_START_TILE = tempResource.SYMBOL_START_TILE;
 var SYMBOL_TILE_AMOUNT = tempResource.SYMBOL_TILE_AMOUNT;
+var TELEPORTER_START_TILE = tempResource.TELEPORTER_START_TILE;
+var TELEPORTER_TILE_AMOUNT = tempResource.TELEPORTER_TILE_AMOUNT;
 
 var breadIngredientSet = [FLOUR_TILE, WATER_TILE, POWDER_TILE];
 
@@ -310,6 +314,12 @@ Player.prototype.walk = function(direction) {
     if (tempTile >= FLOUR_TILE && tempTile <= BREAD_TILE) {
         chunkUtils.setTile(tempPos, TRAIL_START_TILE + this.avatar);
         this.inventory.incrementTileCount(tempTile);
+    }
+    if (tempTile >= TELEPORTER_START_TILE && tempTile < TELEPORTER_START_TILE + TELEPORTER_TILE_AMOUNT)
+    {
+	var tempVec = entityWalkOffsetList[tempTile - TELEPORTER_START_TILE].copy();
+	tempVec.scale(2048);
+	this.pos.add(tempVec);
     }
     this.interactWithAdjacentTiles();
 }
