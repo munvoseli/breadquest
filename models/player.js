@@ -324,7 +324,8 @@ Player.prototype.removeTile = function(direction) {
 
 Player.prototype.canPlaceOnTile = function(tile) {
     return ((tile >= TRAIL_START_TILE && tile < TRAIL_START_TILE + TRAIL_TILE_AMOUNT)
-       || tile == EMPTY_TILE);
+       || tile == EMPTY_TILE
+       || tile == 0);
 }
 
 Player.prototype.placeTile = function(direction, tile) {
